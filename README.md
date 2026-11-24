@@ -25,11 +25,11 @@ El primer inicio de sesión crea la cuenta `admin` usando `ADMIN_PASSWORD`. Desp
 
 Se admiten `.xlsx` y `.csv` de hasta 4 MiB y 1000 filas por carga. Los CSV pueden estar separados por punto y coma o coma, en UTF-8 o Windows-1252. La primera fila debe tener encabezados; se reconocen los campos de la planilla del centro, incluyendo variantes como `N° Socio`, `N° Legajo`, `Fecha Nacimiento` y `Tipo Socio`.
 
-La vista previa indica filas listas, duplicadas y con errores. Los duplicados por número de socio o DNI se omiten, sin sobrescribir registros existentes. Solo se guardan las filas después de confirmar.
+La importación está disponible solo para administradores. La vista previa indica filas listas, duplicadas y con errores. Los duplicados por número de socio o DNI se omiten, sin sobrescribir registros existentes. Solo se guardan las filas después de confirmar.
 
 ## Seguridad y operación
 
-Las cuentas tienen permisos diferenciados: consulta solo visualiza el padrón; secretaría puede modificar, exportar e importar; administración además gestiona usuarios. Las contraseñas individuales se almacenan con hash. Antes de cargar datos reales, activá HTTPS en el alojamiento y prepará una copia de respaldo periódica independiente de Neon. Probá también cómo restaurarla. El plan gratuito de Neon no incluye SLA y puede suspender el cómputo al agotar sus límites.
+Las cuentas tienen permisos diferenciados: consulta solo visualiza el padrón; secretaría puede crear y modificar socios y exportar datos; administración puede además importar planillas y gestionar usuarios. Las contraseñas individuales se almacenan con hash. Antes de cargar datos reales, activá HTTPS en el alojamiento y prepará una copia de respaldo periódica independiente de Neon. Probá también cómo restaurarla. El plan gratuito de Neon no incluye SLA y puede suspender el cómputo al agotar sus límites.
 
 La aplicación conserva las bajas como historial y no tiene una función para borrar socios. No incluye limitación de intentos de inicio de sesión ni auditoría de cambios.
 

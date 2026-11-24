@@ -358,10 +358,10 @@ export default function Home() {
 
   const activeCount = members.filter((member) => !member.fechaBaja).length;
   const inactiveCount = members.length - activeCount;
-  const canImportMembers = currentUser?.role === "secretaria" || currentUser?.role === "administrador";
-  const canEditMembers = canImportMembers;
-  const canSeeReport = canEditMembers;
   const isAdministrator = currentUser?.role === "administrador";
+  const canImportMembers = isAdministrator;
+  const canEditMembers = isAdministrator || currentUser?.role === "secretaria";
+  const canSeeReport = canEditMembers;
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("es-AR");
     return members.filter((member) => {
@@ -479,7 +479,7 @@ export default function Home() {
                   </tr>)}
                 </tbody>
               </table>
-              {!filtered.length && <div className="empty-state"><div className="empty-icon"><Users size={21} /></div><h3>{query || filter !== "all" ? "No hay resultados" : "El padrón empieza acá"}</h3><p>{query || filter !== "all" ? "Probá con otro término o cambiá el filtro." : canEditMembers ? "Agregá un socio o importá los datos de tu planilla." : "No hay socios para mostrar."}</p>{canEditMembers && !query && filter === "all" && <button className="button button-primary" onClick={openNew}><Plus size={16} />Nuevo socio</button>}</div>}
+              {!filtered.length && <div className="empty-state"><div className="empty-icon"><Users size={21} /></div><h3>{query || filter !== "all" ? "No hay resultados" : "El padrón empieza acá"}</h3><p>{query || filter !== "all" ? "Probá con otro término o cambiá el filtro." : canImportMembers ? "Agregá un socio o importá los datos de tu planilla." : canEditMembers ? "Agregá un socio para completar el padrón." : "No hay socios para mostrar."}</p>{canEditMembers && !query && filter === "all" && <button className="button button-primary" onClick={openNew}><Plus size={16} />Nuevo socio</button>}</div>}
             </div>
             <div className="table-footer"><span>Mostrando {filtered.length} de {members.length} socios</span><div className="pagination"><button disabled aria-label="Página anterior"><ArrowLeft size={15} /></button><span>1</span><button disabled aria-label="Página siguiente"><ArrowRight size={15} /></button></div></div>
           </section>

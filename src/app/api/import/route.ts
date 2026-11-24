@@ -92,7 +92,7 @@ async function readRows(file: File): Promise<unknown[][]> {
 }
 
 export async function POST(request: NextRequest) {
-  const authorization = await authorize(request, ["administrador", "secretaria"]);
+  const authorization = await authorize(request, ["administrador"]);
   if (!authorization.authorized) return authorization.response;
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
