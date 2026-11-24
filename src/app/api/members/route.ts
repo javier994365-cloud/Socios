@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasValidSession } from "@/lib/auth";
+import { authorize } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { parseMember } from "@/lib/types";
 
@@ -13,7 +13,8 @@ const selectMembers = `
 `;
 
 export async function GET(request: NextRequest) {
-  if (!await hasValidSession(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const authorization = await authorize(request);
+  if (!authorization.authorized) return authorization.response;
   try {
     const rows = await getDb().query(`${selectMembers} ORDER BY numero_socio`);
     return NextResponse.json(rows);
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!await hasValidSession(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const authorization = await authorize(request, ["administrador", "secretaria"]);
+  if (!authorization.authorized) return authorization.response;
   const member = parseMember(await request.json().catch(() => null));
   if (!member) return NextResponse.json({ error: "Completá un número de socio válido y el DNI. Revisá también las fechas." }, { status: 400 });
   try {

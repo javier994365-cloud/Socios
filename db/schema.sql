@@ -23,3 +23,14 @@ CREATE TABLE IF NOT EXISTS socios (
 );
 
 CREATE INDEX IF NOT EXISTS socios_apellido_nombre_idx ON socios (apellido, nombre);
+
+CREATE TABLE IF NOT EXISTS usuarios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT NOT NULL UNIQUE CHECK (username ~ '^[a-z0-9._-]{3,50}$'),
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('consulta', 'secretaria', 'administrador')),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  session_version INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -17,6 +17,10 @@ export default function ReportPage() {
 
     async function loadMembers() {
       try {
+        const sessionResponse = await fetch("/api/auth/session");
+        const session = await sessionResponse.json();
+        if (!sessionResponse.ok || !session.authenticated) throw new Error("Iniciá sesión para continuar.");
+        if (session.user?.role === "consulta") throw new Error("No tenés permiso para consultar este listado.");
         const response = await fetch("/api/members");
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? "No se pudo cargar el padrón.");
@@ -74,13 +78,13 @@ export default function ReportPage() {
             </thead>
             <tbody>
               {members.map((member) => <tr key={member.id}>
-                <td>{String(member.numeroSocio).padStart(3, "0")}</td>
-                <td>{member.numeroLegajo || "—"}</td>
-                <td>{member.apellido || "—"}</td>
-                <td>{member.nombre || "—"}</td>
-                <td>{member.dni}</td>
-                <td>{member.telefono || "—"}</td>
-                <td>{member.domicilio || "—"}</td>
+                <td data-label="N.º de socio">{String(member.numeroSocio).padStart(3, "0")}</td>
+                <td data-label="N.º de legajo">{member.numeroLegajo || "—"}</td>
+                <td data-label="Apellido">{member.apellido || "—"}</td>
+                <td data-label="Nombre">{member.nombre || "—"}</td>
+                <td data-label="DNI">{member.dni}</td>
+                <td data-label="Teléfono">{member.telefono || "—"}</td>
+                <td data-label="Dirección">{member.domicilio || "—"}</td>
               </tr>)}
             </tbody>
           </table>

@@ -1,7 +1,7 @@
 import { parse } from "csv-parse/sync";
 import ExcelJS from "exceljs";
 import { NextRequest, NextResponse } from "next/server";
-import { hasValidSession } from "@/lib/auth";
+import { authorize } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { blankMember, parseMember, type MemberInput } from "@/lib/types";
 
@@ -92,7 +92,8 @@ async function readRows(file: File): Promise<unknown[][]> {
 }
 
 export async function POST(request: NextRequest) {
-  if (!await hasValidSession(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const authorization = await authorize(request, ["administrador", "secretaria"]);
+  if (!authorization.authorized) return authorization.response;
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     const body = await request.json().catch(() => null);

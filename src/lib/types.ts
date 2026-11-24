@@ -19,6 +19,17 @@ export type Member = {
 
 export type MemberInput = Omit<Member, "id">;
 
+export const userRoles = ["consulta", "secretaria", "administrador"] as const;
+export type UserRole = (typeof userRoles)[number];
+
+export type AppUser = {
+  id: string;
+  username: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: string;
+};
+
 export const blankMember: MemberInput = {
   numeroSocio: 0,
   numeroLegajo: null,

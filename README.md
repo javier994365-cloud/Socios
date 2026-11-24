@@ -4,7 +4,7 @@ Aplicación web para administrar el padrón de un centro de jubilados. Incluye a
 
 ## Requisitos
 
-- Node.js 20 o superior
+- Node.js 26.x
 - Una base PostgreSQL en Neon
 
 Para desplegar en Vercel, seguí la [guía de publicación](GUIA-VERCEL.md).
@@ -19,6 +19,8 @@ Para desplegar en Vercel, seguí la [guía de publicación](GUIA-VERCEL.md).
 
 No publiques `.env.local` ni compartas la URL de conexión. En producción, cargá esas variables en el servicio de alojamiento; no las agregues al código del navegador.
 
+El primer inicio de sesión crea la cuenta `admin` usando `ADMIN_PASSWORD`. Después, el administrador puede crear usuarios de consulta, secretaría y administración desde **Administrar usuarios**. Si la base ya existía, volvé a ejecutar `db/schema.sql` para crear la tabla de usuarios; el esquema conserva los socios existentes.
+
 ## Importar la planilla
 
 Se admiten `.xlsx` y `.csv` de hasta 4 MiB y 1000 filas por carga. Los CSV pueden estar separados por punto y coma o coma, en UTF-8 o Windows-1252. La primera fila debe tener encabezados; se reconocen los campos de la planilla del centro, incluyendo variantes como `N° Socio`, `N° Legajo`, `Fecha Nacimiento` y `Tipo Socio`.
@@ -27,9 +29,9 @@ La vista previa indica filas listas, duplicadas y con errores. Los duplicados po
 
 ## Seguridad y operación
 
-Esta primera versión usa una contraseña administrativa única para todas las personas autorizadas. Antes de cargar datos reales, usá una contraseña larga, activá HTTPS en el alojamiento y prepará una copia de respaldo periódica independiente de Neon. Probá también cómo restaurarla. El plan gratuito de Neon no incluye SLA y puede suspender el cómputo al agotar sus límites.
+Las cuentas tienen permisos diferenciados: consulta solo visualiza el padrón; secretaría puede modificar, exportar e importar; administración además gestiona usuarios. Las contraseñas individuales se almacenan con hash. Antes de cargar datos reales, activá HTTPS en el alojamiento y prepará una copia de respaldo periódica independiente de Neon. Probá también cómo restaurarla. El plan gratuito de Neon no incluye SLA y puede suspender el cómputo al agotar sus límites.
 
-Si varias personas van a administrar el padrón, conviene agregar cuentas individuales, permisos y registro de cambios antes de ponerlo en uso habitual. La aplicación conserva las bajas como historial y no tiene una función para borrar socios.
+La aplicación conserva las bajas como historial y no tiene una función para borrar socios. No incluye limitación de intentos de inicio de sesión ni auditoría de cambios.
 
 ## Comprobaciones
 

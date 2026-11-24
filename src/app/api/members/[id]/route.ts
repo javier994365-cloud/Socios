@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasValidSession } from "@/lib/auth";
+import { authorize } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { parseMemberPatch, type MemberInput } from "@/lib/types";
 
@@ -22,7 +22,8 @@ const memberColumns: Record<keyof MemberInput, string> = {
 };
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  if (!await hasValidSession(request)) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const authorization = await authorize(request, ["administrador", "secretaria"]);
+  if (!authorization.authorized) return authorization.response;
   const { id } = await context.params;
   const patch = parseMemberPatch(await request.json().catch(() => null));
   if (!patch) return NextResponse.json({ error: "Revisá los valores modificados: el número de socio, el DNI o alguna fecha no son válidos." }, { status: 400 });

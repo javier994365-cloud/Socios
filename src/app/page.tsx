@@ -6,10 +6,17 @@ import {
   ArrowDownToLine, ArrowLeft, ArrowRight, BadgePlus, Check, ChevronDown, CircleAlert,
   FileSpreadsheet, Filter, LogOut, Menu, Plus, Printer, Search, ShieldCheck, UserRound, Users, X,
 } from "lucide-react";
-import { blankMember, type Member, type MemberInput } from "@/lib/types";
+import { blankMember, type Member, type MemberInput, type UserRole } from "@/lib/types";
 
 type SessionState = "loading" | "setup" | "login" | "ready";
 type Dialog = "member" | "import" | null;
+type SessionUser = { username: string; role: UserRole };
+
+function roleLabel(role: UserRole) {
+  if (role === "administrador") return "Administrador";
+  if (role === "secretaria") return "Secretaría";
+  return "Consulta";
+}
 
 function displayName(member: Member | MemberInput) {
   return [member.apellido, member.nombre].filter(Boolean).join(", ") || "Sin nombre cargado";
@@ -40,7 +47,8 @@ function csvEscape(value: unknown) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+function LoginScreen({ onLogin }: { onLogin: (user: SessionUser) => void }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,7 +60,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     const result = await response.json();
     setBusy(false);
@@ -60,7 +68,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       setError(result.error ?? "No se pudo iniciar sesión.");
       return;
     }
-    onLogin();
+    onLogin(result.user);
   }
 
   return (
@@ -70,9 +78,12 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <h1>El padrón,<br />en orden.</h1>
       <p className="gate-copy">Administración de socios</p>
       <form className="login-form" onSubmit={submit}>
-        <label htmlFor="admin-password">Contraseña de administración</label>
+        <label htmlFor="login-username">Usuario</label>
+        <input id="login-username" type="text" autoComplete="username" value={username}
+          onChange={(event) => setUsername(event.target.value)} required autoFocus />
+        <label htmlFor="admin-password">Contraseña</label>
         <input id="admin-password" type="password" autoComplete="current-password" value={password}
-          onChange={(event) => setPassword(event.target.value)} required autoFocus />
+          onChange={(event) => setPassword(event.target.value)} required />
         {error && <p className="form-error">{error}</p>}
         <button className="button button-primary full-button" type="submit" disabled={busy}>
           {busy ? "Ingresando…" : "Ingresar"}<ArrowRight size={17} />
@@ -92,7 +103,7 @@ function SetupScreen() {
       <p className="setup-copy">Configurá Neon y el acceso de administración para habilitar el padrón.</p>
       <div className="setup-list">
         <p><span>01</span> Copiá <code>.env.example</code> como <code>.env.local</code>.</p>
-        <p><span>02</span> Completá la URL de Neon, la contraseña y el secreto de sesión.</p>
+        <p><span>02</span> Completá la URL de Neon, la contraseña inicial de <code>admin</code> y el secreto de sesión.</p>
         <p><span>03</span> Ejecutá <code>db/schema.sql</code> en el SQL Editor de Neon.</p>
       </div>
       <p className="gate-foot"><ShieldCheck size={14} /> La URL de la base queda solo en el servidor</p>
@@ -100,8 +111,9 @@ function SetupScreen() {
   );
 }
 
-function MemberDialog({ member, onClose, onSaved }: {
+function MemberDialog({ member, canEdit, onClose, onSaved }: {
   member: Member | null;
+  canEdit: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -144,8 +156,8 @@ function MemberDialog({ member, onClose, onSaved }: {
 
   const textField = (field: keyof MemberInput, label: string, required = false, type = "text") => (
     <label className="field" key={field}>
-      <span>{label}{required && <b> *</b>}</span>
-      <input type={type} required={required && (!member || form[field] !== member[field])}
+      <span>{label}{required && canEdit && <b> *</b>}</span>
+      <input type={type} required={canEdit && required && (!member || form[field] !== member[field])} disabled={!canEdit}
         value={type === "date" ? dateInputValue(typeof form[field] === "string" ? form[field] : null) : String(form[field] ?? "")}
         onChange={(event) => update(field, event.target.value)} />
     </label>
@@ -155,10 +167,10 @@ function MemberDialog({ member, onClose, onSaved }: {
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="modal member-modal" role="dialog" aria-modal="true" aria-labelledby="member-title">
         <div className="modal-head">
-          <div><p className="eyebrow">FICHA DE SOCIO</p><h2 id="member-title">{member ? "Editar registro" : "Nuevo socio"}</h2></div>
+        <div><p className="eyebrow">FICHA DE SOCIO</p><h2 id="member-title">{member ? (canEdit ? "Editar registro" : "Consultar ficha") : "Nuevo socio"}</h2></div>
           <button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={19} /></button>
         </div>
-        <form onSubmit={submit}>
+        <form onSubmit={canEdit ? submit : (event) => event.preventDefault()}>
           <div className="form-section-title">Identificación</div>
           <div className="form-grid">
             {textField("numeroSocio", "N.º de socio", true, "number")}
@@ -183,13 +195,13 @@ function MemberDialog({ member, onClose, onSaved }: {
             {textField("fechaBaja", "Fecha de baja", false, "date")}
             <div className="field field-wide">{textField("motivoBaja", "Motivo de baja")}</div>
           </div>
-          <p className="required-note">* Datos obligatorios</p>
+          {canEdit && <p className="required-note">* Datos obligatorios</p>}
           {error && <p className="form-error">{error}</p>}
           <div className="modal-actions">
-            <button type="button" className="button button-quiet" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="button button-primary" disabled={busy}>
+            <button type="button" className="button button-quiet" onClick={onClose}>{canEdit ? "Cancelar" : "Cerrar"}</button>
+            {canEdit && <button type="submit" className="button button-primary" disabled={busy}>
               {busy ? "Guardando…" : <>{member ? "Guardar cambios" : "Crear socio"}<Check size={16} /></>}
-            </button>
+            </button>}
           </div>
         </form>
       </section>
@@ -301,6 +313,7 @@ function ImportDialog({ onClose, onImported }: { onClose: () => void; onImported
 
 export default function Home() {
   const [session, setSession] = useState<SessionState>("loading");
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
@@ -313,6 +326,7 @@ export default function Home() {
     setLoadError("");
     const response = await fetch("/api/members");
     if (response.status === 401) {
+      setCurrentUser(null);
       setSession("login");
       return;
     }
@@ -330,10 +344,12 @@ export default function Home() {
       if (!active) return;
       if (!result.configured) {
         setSession("setup");
-      } else if (result.authenticated) {
+      } else if (result.authenticated && result.user) {
+        setCurrentUser(result.user);
         setSession("ready");
         await loadMembers();
       } else {
+        setCurrentUser(null);
         setSession("login");
       }
     }).catch(() => active && setSession("setup"));
@@ -342,6 +358,9 @@ export default function Home() {
 
   const activeCount = members.filter((member) => !member.fechaBaja).length;
   const inactiveCount = members.length - activeCount;
+  const canEditMembers = currentUser?.role === "administrador" || currentUser?.role === "secretaria";
+  const canSeeReport = canEditMembers;
+  const isAdministrator = currentUser?.role === "administrador";
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("es-AR");
     return members.filter((member) => {
@@ -364,6 +383,7 @@ export default function Home() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    setCurrentUser(null);
     setSession("login");
     setMembers([]);
   }
@@ -384,7 +404,11 @@ export default function Home() {
 
   if (session === "loading") return <main className="loading-screen"><span className="loading-dot" />Cargando padrón</main>;
   if (session === "setup") return <SetupScreen />;
-  if (session === "login") return <LoginScreen onLogin={() => { setSession("ready"); loadMembers(); }} />;
+  if (session === "login") return <LoginScreen onLogin={(user) => {
+    setCurrentUser(user);
+    setSession("ready");
+    loadMembers();
+  }} />;
 
   return (
     <main className="app-shell">
@@ -392,8 +416,9 @@ export default function Home() {
         <div className="brand-lockup"><div className="brand-icon"><Users size={20} /></div><div><strong>Centro de Jubilados</strong><span>Administración</span></div></div>
         <div className="side-label">GESTIÓN</div>
         <button className="nav-item nav-item-active" onClick={() => setMobileNav(false)}><Users size={17} />Padrón de socios<span className="nav-count">{members.length}</span></button>
-        <button className="nav-item" onClick={() => { setDialog("import"); setMobileNav(false); }}><ArrowDownToLine size={17} />Importar planilla</button>
-        <Link className="nav-item" href="/reporte" onClick={() => setMobileNav(false)}><Printer size={17} />Listado de Socios Activos</Link>
+        {canEditMembers && <button className="nav-item" onClick={() => { setDialog("import"); setMobileNav(false); }}><ArrowDownToLine size={17} />Importar planilla</button>}
+        {canSeeReport && <Link className="nav-item" href="/reporte" onClick={() => setMobileNav(false)}><Printer size={17} />Listado de Socios Activos</Link>}
+        {isAdministrator && <Link className="nav-item" href="/usuarios" onClick={() => setMobileNav(false)}><UserRound size={17} />Administrar usuarios</Link>}
         <div className="sidebar-bottom">
           <div className="privacy-note"><ShieldCheck size={17} /><span>Acceso privado<br />Datos protegidos</span></div>
           <button className="nav-item logout-item" onClick={logout}><LogOut size={17} />Cerrar sesión</button>
@@ -404,15 +429,15 @@ export default function Home() {
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Abrir menú"><Menu size={20} /></button>
           <div className="breadcrumb"><span>Gestión</span><span className="breadcrumb-separator">/</span><strong>Socios</strong></div>
-          <div className="topbar-user"><span className="user-avatar"><UserRound size={16} /></span><span>Administración</span><ChevronDown size={14} /></div>
+          <div className="topbar-user"><span className="user-avatar"><UserRound size={16} /></span><span>{currentUser ? roleLabel(currentUser.role) : ""}</span><ChevronDown size={14} /></div>
         </header>
 
         <section className="content-area">
           <div className="page-heading">
-            <div><p className="eyebrow">REGISTRO INSTITUCIONAL</p><h1>Padrón de socios</h1><p className="page-subtitle">Altas, datos y estado de membresía en un solo lugar.</p></div>
+            <div><p className="eyebrow">REGISTRO INSTITUCIONAL</p><h1>Padrón de socios</h1><p className="page-subtitle">{canEditMembers ? "Altas, datos y estado de membresía en un solo lugar." : "Consulta del padrón de socios en modo solo lectura."}</p></div>
             <div className="heading-actions">
-              <button className="button button-outline" onClick={exportMembers} disabled={!filtered.length}><ArrowDownToLine size={16} />Exportar</button>
-              <button className="button button-primary" onClick={openNew}><Plus size={17} />Nuevo socio</button>
+              {canEditMembers && <button className="button button-outline" onClick={exportMembers} disabled={!filtered.length}><ArrowDownToLine size={16} />Exportar</button>}
+              {canEditMembers && <button className="button button-primary" onClick={openNew}><Plus size={17} />Nuevo socio</button>}
             </div>
           </div>
 
@@ -435,33 +460,33 @@ export default function Home() {
             </div>
             {loadError && <div className="error-banner"><CircleAlert size={17} />{loadError}<button onClick={loadMembers}>Reintentar</button></div>}
             <div className="table-wrap">
-              <table>
+              <table className="member-table">
                 <thead><tr><th>N.º</th><th>APELLIDO Y NOMBRE</th><th>DNI</th><th>LOCALIDAD</th><th>TELÉFONO / DIRECCIÓN</th><th>FECHA DE ALTA</th><th>ESTADO</th><th><span className="visually-hidden">Acción</span></th></tr></thead>
                 <tbody>
                   {filtered.map((member) => <tr key={member.id} onClick={() => openEdit(member)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openEdit(member)}>
-                    <td className="member-number">{String(member.numeroSocio).padStart(3, "0")}</td>
-                    <td><div className="member-name">{displayName(member)}</div><div className="member-sub">{member.tipoSocio || "Tipo sin informar"}</div></td>
-                    <td className="member-dni">{member.dni}</td>
-                    <td>{member.localidad || <span className="muted-value">Sin informar</span>}</td>
-                    <td className="member-contact-cell">
+                    <td className="member-number" data-label="N.º">{String(member.numeroSocio).padStart(3, "0")}</td>
+                    <td data-label="Apellido y nombre"><div className="member-name">{displayName(member)}</div><div className="member-sub">{member.tipoSocio || "Tipo sin informar"}</div></td>
+                    <td className="member-dni" data-label="DNI">{member.dni}</td>
+                    <td data-label="Localidad">{member.localidad || <span className="muted-value">Sin informar</span>}</td>
+                    <td className="member-contact-cell" data-label="Teléfono / dirección">
                       <div>{member.telefono || <span className="muted-value">Sin teléfono</span>}</div>
                       <div className="member-contact-address">{member.domicilio || <span className="muted-value">Sin dirección</span>}</div>
                     </td>
-                    <td>{dateLabel(member.fechaAlta)}</td>
-                    <td><span className={`status-pill ${member.fechaBaja ? "status-inactive" : "status-active"}`}><i />{member.fechaBaja ? "Baja" : "Activo"}</span></td>
-                    <td><button className="row-action" aria-label={`Editar ${displayName(member)}`} onClick={(event) => { event.stopPropagation(); openEdit(member); }}><ArrowRight size={16} /></button></td>
+                    <td data-label="Fecha de alta">{dateLabel(member.fechaAlta)}</td>
+                    <td data-label="Estado"><span className={`status-pill ${member.fechaBaja ? "status-inactive" : "status-active"}`}><i />{member.fechaBaja ? "Baja" : "Activo"}</span></td>
+                    <td data-label="Acción"><button className="row-action" aria-label={`${canEditMembers ? "Editar" : "Consultar"} ${displayName(member)}`} onClick={(event) => { event.stopPropagation(); openEdit(member); }}><ArrowRight size={16} /></button></td>
                   </tr>)}
                 </tbody>
               </table>
-              {!filtered.length && <div className="empty-state"><div className="empty-icon"><Users size={21} /></div><h3>{query || filter !== "all" ? "No hay resultados" : "El padrón empieza acá"}</h3><p>{query || filter !== "all" ? "Probá con otro término o cambiá el filtro." : "Agregá un socio o importá los datos de tu planilla."}</p>{!query && filter === "all" && <button className="button button-primary" onClick={openNew}><Plus size={16} />Nuevo socio</button>}</div>}
+              {!filtered.length && <div className="empty-state"><div className="empty-icon"><Users size={21} /></div><h3>{query || filter !== "all" ? "No hay resultados" : "El padrón empieza acá"}</h3><p>{query || filter !== "all" ? "Probá con otro término o cambiá el filtro." : canEditMembers ? "Agregá un socio o importá los datos de tu planilla." : "No hay socios para mostrar."}</p>{canEditMembers && !query && filter === "all" && <button className="button button-primary" onClick={openNew}><Plus size={16} />Nuevo socio</button>}</div>}
             </div>
             <div className="table-footer"><span>Mostrando {filtered.length} de {members.length} socios</span><div className="pagination"><button disabled aria-label="Página anterior"><ArrowLeft size={15} /></button><span>1</span><button disabled aria-label="Página siguiente"><ArrowRight size={15} /></button></div></div>
           </section>
           <footer className="page-footer"><span>Centro de Jubilados</span><span>PADRÓN DIGITAL · {new Date().getFullYear()}</span></footer>
         </section>
       </div>
-      {dialog === "member" && <MemberDialog member={selected} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); loadMembers(); }} />}
-      {dialog === "import" && <ImportDialog onClose={() => setDialog(null)} onImported={loadMembers} />}
+      {dialog === "member" && <MemberDialog member={selected} canEdit={canEditMembers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); loadMembers(); }} />}
+      {dialog === "import" && canEditMembers && <ImportDialog onClose={() => setDialog(null)} onImported={loadMembers} />}
     </main>
   );
 }

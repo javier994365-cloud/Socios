@@ -22,7 +22,7 @@ Esta guía publica la aplicación y conecta el servidor a PostgreSQL en Neon. No
 ## Crear la base en Neon
 
 1. Creá un proyecto y una base en Neon.
-2. Abrí **SQL Editor** y ejecutá el contenido de `db/schema.sql`.
+2. Abrí **SQL Editor** y ejecutá el contenido de `db/schema.sql`. Si ya tenías una base, volvé a ejecutar el esquema actualizado para crear la tabla de usuarios; las tablas de socios existentes se conservan.
 3. Desde **Connect**, elegí la branch, el rol y la base que usará la aplicación. Copiá la URL de conexión completa, con SSL. Para una aplicación serverless, preferí la URL con pooler si Neon la ofrece.
 4. Guardá la URL en un gestor de contraseñas; contiene credenciales de la base.
 
@@ -39,7 +39,7 @@ Neon tiene un plan gratuito, pero sus límites pueden cambiar y no equivale a un
    | Variable         | Valor                                                              |
    | ---------------- | ------------------------------------------------------------------ |
    | `DATABASE_URL`   | URL completa copiada desde Neon, incluida la parte SSL             |
-   | `ADMIN_PASSWORD` | Contraseña administrativa larga, exclusiva y guardada en un gestor |
+   | `ADMIN_PASSWORD` | Contraseña larga y exclusiva para crear el usuario inicial `admin` |
    | `AUTH_SECRET`    | Secreto aleatorio de al menos 32 caracteres                        |
 
    Podés generar `AUTH_SECRET` en tu PC, después de instalar Node, con:
@@ -49,6 +49,8 @@ Neon tiene un plan gratuito, pero sus límites pueden cambiar y no equivale a un
    ```
 
    No agregues el prefijo `NEXT_PUBLIC_` a ninguna de estas variables. No pegues secretos en el código ni en GitHub. Dejá `Preview` sin acceso a la base de producción; si necesitás probar previews, asignales una branch o base de prueba y sus propias variables. Las variables nuevas o modificadas requieren un nuevo despliegue.
+
+   En el primer inicio de sesión, usá el usuario `admin` y la contraseña de `ADMIN_PASSWORD`. La contraseña queda almacenada como hash en la tabla `usuarios`; desde **Administrar usuarios**, el administrador puede crear otras cuentas y cambiar sus contraseñas.
 
 6. Conservá los comandos detectados por Vercel: instalación con npm y build con `npm run build`. Elegí **Deploy**.
 7. Esperá el resultado en **Deployments**. Si falla, abrí los registros del build; verificá primero que `package-lock.json` esté en GitHub, que la raíz del proyecto sea correcta y que las variables estén en el entorno que estás desplegando.
@@ -60,9 +62,9 @@ En el plan Hobby, Vercel tiene restricciones para desplegar repositorios privado
 Antes de cargar el padrón real:
 
 1. Abrí la URL `*.vercel.app` y comprobá que aparezca la pantalla de acceso.
-2. Iniciá sesión y confirmá que carga una lista vacía. Si aparece el mensaje de configuración, revisá que las tres variables estén en **Production**, que `AUTH_SECRET` tenga al menos 32 caracteres y que se haya hecho un nuevo despliegue.
+2. Iniciá sesión con `admin` y la contraseña configurada en `ADMIN_PASSWORD`, y confirmá que carga una lista vacía. Si aparece el mensaje de configuración, revisá que las tres variables estén en **Production**, que `AUTH_SECRET` tenga al menos 32 caracteres y que se haya hecho un nuevo despliegue.
 3. Hacé las pruebas de alta, edición, búsqueda, exportación e importación usando la base de prueba. Incluí filas con duplicados y datos incompletos.
-4. Confirmá que un usuario sin sesión no pueda consultar `/api/members` y que la contraseña equivocada no permita ingresar.
+4. Confirmá que un usuario sin sesión no pueda consultar `/api/members`, que la contraseña equivocada no permita ingresar y que cada rol solo tenga las opciones y acciones previstas.
 5. Probá un archivo XLSX y un CSV de menos de 4 MiB. El límite se mantiene por debajo del máximo habitual de cuerpo de solicitud de una Vercel Function.
 6. Antes de usar producción, ejecutá y verificá un respaldo, y documentá cómo restaurarlo.
 
@@ -72,7 +74,7 @@ En Vercel, abrí **Settings → Domains**, agregá el dominio y seguí las instr
 
 ## Pendiente de seguridad antes de datos reales
 
-La versión actual usa una sola contraseña compartida para todos los administradores; no tiene cuentas individuales, limitación de intentos ni auditoría de cambios. El padrón contiene DNI y otros datos personales. Antes de cargar datos reales, conviene agregar inicio de sesión individual o una capa de acceso administrada, limitación de intentos y registro de cambios. No reutilices la misma contraseña en otros servicios.
+El padrón contiene DNI y otros datos personales. Las contraseñas individuales se almacenan con hash y los cambios de rol/desactivaciones invalidan las sesiones existentes. La aplicación todavía no incluye limitación de intentos ni auditoría de cambios; no reutilices las contraseñas en otros servicios.
 
 ## Referencias oficiales
 
