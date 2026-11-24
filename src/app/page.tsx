@@ -358,7 +358,8 @@ export default function Home() {
 
   const activeCount = members.filter((member) => !member.fechaBaja).length;
   const inactiveCount = members.length - activeCount;
-  const canEditMembers = currentUser?.role === "administrador" || currentUser?.role === "secretaria";
+  const canImportMembers = currentUser?.role === "secretaria" || currentUser?.role === "administrador";
+  const canEditMembers = canImportMembers;
   const canSeeReport = canEditMembers;
   const isAdministrator = currentUser?.role === "administrador";
   const filtered = useMemo(() => {
@@ -416,7 +417,7 @@ export default function Home() {
         <div className="brand-lockup"><div className="brand-icon"><Users size={20} /></div><div><strong>Centro de Jubilados</strong><span>Administración</span></div></div>
         <div className="side-label">GESTIÓN</div>
         <button className="nav-item nav-item-active" onClick={() => setMobileNav(false)}><Users size={17} />Padrón de socios<span className="nav-count">{members.length}</span></button>
-        {canEditMembers && <button className="nav-item" onClick={() => { setDialog("import"); setMobileNav(false); }}><ArrowDownToLine size={17} />Importar planilla</button>}
+        {canImportMembers && <button className="nav-item" onClick={() => { setDialog("import"); setMobileNav(false); }}><ArrowDownToLine size={17} />Importar Planilla</button>}
         {canSeeReport && <Link className="nav-item" href="/reporte" onClick={() => setMobileNav(false)}><Printer size={17} />Listado de Socios Activos</Link>}
         {isAdministrator && <Link className="nav-item" href="/usuarios" onClick={() => setMobileNav(false)}><UserRound size={17} />Administrar usuarios</Link>}
         <div className="sidebar-bottom">
@@ -486,7 +487,7 @@ export default function Home() {
         </section>
       </div>
       {dialog === "member" && <MemberDialog member={selected} canEdit={canEditMembers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); loadMembers(); }} />}
-      {dialog === "import" && canEditMembers && <ImportDialog onClose={() => setDialog(null)} onImported={loadMembers} />}
+      {dialog === "import" && canImportMembers && <ImportDialog onClose={() => setDialog(null)} onImported={loadMembers} />}
     </main>
   );
 }
