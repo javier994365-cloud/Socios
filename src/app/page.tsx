@@ -117,7 +117,12 @@ function MemberDialog({ member, canEdit, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState<MemberInput>(() => member ? { ...member } : { ...blankMember });
+  const [form, setForm] = useState<MemberInput>(() => member ? { ...member } : {
+    ...blankMember,
+    sexo: "Femenino",
+    tipoSocio: "Jubilado",
+    localidad: "Urdinarrain",
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -163,6 +168,15 @@ function MemberDialog({ member, canEdit, onClose, onSaved }: {
     </label>
   );
 
+  const selectField = (field: "sexo" | "tipoSocio", label: string, options: string[]) => (
+    <label className="field" key={field}>
+      <span>{label}</span>
+      <select disabled={!canEdit} value={form[field] ?? ""} onChange={(event) => update(field, event.target.value)}>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
+  );
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="modal member-modal" role="dialog" aria-modal="true" aria-labelledby="member-title">
@@ -182,9 +196,9 @@ function MemberDialog({ member, canEdit, onClose, onSaved }: {
           <div className="form-grid">
             {textField("apellido", "Apellido")}
             {textField("nombre", "Nombre")}
-            {textField("sexo", "Sexo")}
+            {selectField("sexo", "Sexo", ["Femenino", "Masculino"])}
             {textField("fechaNacimiento", "Fecha de nacimiento", false, "date")}
-            {textField("tipoSocio", "Tipo de socio")}
+            {selectField("tipoSocio", "Tipo de socio", ["Jubilado", "Pensionado"])}
             {textField("telefono", "Teléfono", false, "tel")}
             {textField("domicilio", "Domicilio")}
             {textField("localidad", "Localidad")}

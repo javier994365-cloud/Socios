@@ -2,6 +2,8 @@
 
 Aplicación web para administrar el padrón de un centro de jubilados. Incluye acceso privado, consulta y edición de socios, exportación CSV e importación de CSV/XLSX con validación previa.
 
+Para aprender a usar las funciones del sistema, consultá el [manual para usuarios finales](MANUAL-USUARIO.md).
+
 ## Requisitos
 
 - Node.js 26.x
